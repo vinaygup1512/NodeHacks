@@ -1,0 +1,356 @@
+<html>
+<link rel="icon" href="https://cdn-images-1.medium.com/max/1600/1*86dDGzwyawUu_MpEO2im1g.png" type="image/png" sizes="16x16">
+<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/select2/4.0.1/css/select2.min.css">
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+<script type="text/javascript" src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/select2/4.0.1/js/select2.min.js"></script>
+<script type="text/javascript">
+	$(document).ready(function() {
+    $('.modelML').select2({
+    	placeholder: "Select a folder",
+    	dropdownAutoWidth : true,
+    	width: 'auto'});
+    $('.modelIR').select2({
+    	placeholder: "Select a folder",
+    	dropdownAutoWidth : true,
+    	width: 'auto'});
+    $('.basemodelIR').select2({
+    	placeholder: "Select a folder",
+    	dropdownAutoWidth : true,
+    	width: 'auto'});
+    $('.basePDF').select2({
+      placeholder: "Select a folder",
+      dropdownAutoWidth : true,
+      width: 'auto'});
+    $('.newPDF').select2({
+      placeholder: "Select a folder",
+      dropdownAutoWidth : true,
+      width: 'auto'});
+    $('.user').select2({
+    	placeholder: "Select a user",
+    	dropdownAutoWidth : true,
+    	width: 'auto'});
+
+    $('.modelIR_baseline').select2({
+      placeholder: "Select a folder",
+      dropdownAutoWidth : true,
+      width: 'auto'});
+    $('.newPDF_baseline').select2({
+      placeholder: "Select a folder",
+      dropdownAutoWidth : true,
+      width: 'auto'});
+    $('.user_baseline').select2({
+      placeholder: "Select a user",
+      dropdownAutoWidth : true,
+      width: 'auto'});
+
+
+
+    function getFolderPath(classToUpdate,path,classtoClearOnError){
+    	//console.log(classToUpdate+path);
+    	$.ajax({
+        url:'/getFolderPath',
+        datatype: "json",
+        data:{path:path},
+        success:function(response){
+          if(response.status=="200")
+            $(classToUpdate).html(response.html);
+          else{
+            $(classtoClearOnError).html("");
+            $(".errorDiv").css("display","block");
+            setTimeout(function() {
+              $(".errorDiv").css("display","none");
+            }, 1500);
+          }
+        },
+        error: function() {
+            alert('process error');
+            },
+        });
+    }
+
+  $('.modelML').on('select2:select', function(e) { 
+    	var pathval = $(".modelMLVal").text();
+    	var newVal = $(e.currentTarget).find("option:selected").val();
+    	if(newVal.localeCompare("none"))
+			$(".modelMLVal").html(pathval+"/"+newVal);
+		getFolderPath(".modelML",pathval+"/"+newVal,".modelMLVal");
+	});
+	$('.modelIR').on('select2:select', function(e) { 
+    	var pathval = $(".modelIRVal").text();
+    	var newVal = $(e.currentTarget).find("option:selected").val();
+    	if(newVal.localeCompare("none"))
+			$(".modelIRVal").html(pathval+"/"+newVal);
+		getFolderPath(".modelIR",pathval+"/"+newVal,".modelIRVal");
+	});
+	$('.basemodelIR').on('select2:select', function(e) { 
+    	var pathval = $(".modelbaseIRVal").text();
+    	var newVal = $(e.currentTarget).find("option:selected").val();
+    	if(newVal.localeCompare("none"))
+			$(".modelbaseIRVal").html(pathval+"/"+newVal);
+		getFolderPath(".basemodelIR",pathval+"/"+newVal,".modelbaseIRVal");
+	});
+  $('.basePDF').on('select2:select', function(e) { 
+      var pathval = $(".basePDFVal").text();
+      var newVal = $(e.currentTarget).find("option:selected").val();
+      if(newVal.localeCompare("none"))
+      $(".basePDFVal").html(pathval+"/"+newVal);
+    getFolderPath(".basePDF",pathval+"/"+newVal,".basePDFVal");
+  });
+  $('.newPDF').on('select2:select', function(e) { 
+      var pathval = $(".newPDFVal").text();
+      var newVal = $(e.currentTarget).find("option:selected").val();
+      if(newVal.localeCompare("none"))
+      $(".newPDFVal").html(pathval+"/"+newVal);
+    getFolderPath(".newPDF",pathval+"/"+newVal,".newPDFVal");
+  });
+
+  $('.modelIR_baseline').on('select2:select', function(e) { 
+      var pathval = $(".modelIRVal_baseline").text();
+      var newVal = $(e.currentTarget).find("option:selected").val();
+      if(newVal.localeCompare("none"))
+      $(".modelIRVal_baseline").html(pathval+"/"+newVal);
+    getFolderPath(".modelIR_baseline",pathval+"/"+newVal,".modelIRVal_baseline");
+  });
+  $('.newPDF_baseline').on('select2:select', function(e) { 
+      var pathval = $(".newPDFVal_baseline").text();
+      var newVal = $(e.currentTarget).find("option:selected").val();
+      if(newVal.localeCompare("none"))
+      $(".newPDFVal_baseline").html(pathval+"/"+newVal);
+    getFolderPath(".newPDF_baseline",pathval+"/"+newVal,".newPDFVal_baseline");
+  });
+  
+
+  $("#baseline").click(function(){
+    //base path and base pdf
+    $(".selectionBaseline").show();
+    $(".selectionModel").hide();
+    $("#summary").hide();
+    $("#summary_baseline").show();
+  });
+  $("#model").click(function(){
+    //base path and base pdf
+    $(".selectionBaseline").hide();
+    $(".selectionModel").show();
+    $("#summary").show();
+    $("#summary_baseline").hide();
+  });
+});
+    function backFolder(dropDownToUpdate,valToUpdate){
+		var pathval = $(valToUpdate).text();
+		var res = pathval.substring(0,pathval.lastIndexOf("/"));
+		console.log(res);
+		if(res.localeCompare("/")){
+			$.ajax({
+        		url:'/getFolderPath',
+        		datatype: "json",
+        		data:{path:res},
+        		success:function(response){
+            		if(response.status=="200"){
+                  $(dropDownToUpdate).html(response.html);
+                  $(valToUpdate).html(res);
+                }
+                else{
+                  $(".errorDiv").css("display","block");
+                  setTimeout(function() {
+                    $(".errorDiv").css("display","none");
+                  }, 1500);
+                }
+            	},
+        		error: function() {
+            		alert('process error');
+            	},
+        	});
+		}
+		//alert("Hit");
+	}
+	function submitPage(){
+    if($("#model").prop("checked")){
+    	var modelIRPath = $(".modelIRVal").text();
+    	var modelMLPath = $(".modelMLVal").text();
+    	var modelBaseIRPath = $(".modelbaseIRVal").text();
+      var basePDFPath = $(".basePDFVal").text();
+      var newPDFPath = $(".newPDFVal").text();
+    	var user = $(".user").find("option:selected").val();
+    	var urlParams = encodeURIComponent("modelMLPath="+modelMLPath+"&modelIRPath="+modelIRPath+"&modelBaseIRPath="+modelBaseIRPath+"&basePDFPath="+basePDFPath+"&newPDFPath="+newPDFPath+"&user="+user+"&analysisType=modelSelection");
+    } else{
+      var modelIRPath = $(".modelIRVal_baseline").text();
+      var newPDFPath = $(".newPDFVal_baseline").text();
+      var user = $(".user_baseline").find("option:selected").val();
+      var urlParams = encodeURIComponent("modelIRPath="+modelIRPath+"&newPDFPath="+newPDFPath+"&user="+user+"&analysisType=baseline");
+    }
+    window.open("http://localhost/analysisPage?"+urlParams,"_self");//"http://no1010042068018/analysisPage?"+urlParams,"_self");
+  }
+</script>
+	<style>
+		body {
+  			background-image:url("https://wallpapertag.com/wallpaper/full/3/3/a/125483-background-nature-2400x1186-mobile.jpg");
+  			background-size: cover;
+  			border: 30px solid #fdffffbf;
+		}
+		h1, h2 { 
+  			margin: 0; 
+  			font-family: sans-serif;
+  			font-size: 25px;
+  			text-shadow: 0 2px rgba(0,0,0,.5);
+		}
+		.modelML{
+			 dropdownAutoWidth: true;
+    		width: 'auto'
+		}
+		.majorDiv{
+			width: 1000px;
+      height: 650px;
+      background-color: rgba(100, 180, 237, 0.78);
+      position: fixed;
+      top: 46%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+		}
+		.analyzebutton{
+    		width: 150px;
+		    height:25px;
+		    font-size:14px;
+		    font-weight: bold;
+    }
+    .errorDiv{
+      background: #ef0748a1;
+      display: none;
+      width:100%;
+      position: fixed;
+      top: 25%;
+      left: 50%;
+      margin-top: -100px;
+      margin-left: -50%;
+    }
+    .selected{
+      position: fixed;
+      bottom: 25px;
+      width: 100%;
+    }
+    .baseSelection{
+      border-style: ridge;
+    }
+    .selectionBaseline{
+      display:none;
+    }
+    #summary_baseline{
+      display:none;
+    }
+	</style>
+	<head>
+		<title>YodaCamp</title>
+	</head>
+<body>
+	<center>
+		<div class="majorDiv">
+			<br/>
+			<h1>Select folders for comparison</h1><br/><br/>
+      <div class="errorDiv">Some error occurred and logged!</div>
+      <div class="baseSelection"><input type="radio" name="radioSelect" id="baseline" value="Baseline creation"/>&nbsp;Baseline creation &nbsp;&nbsp;  
+        <input type="radio" name="radioSelect" id="model" value="Model comparison" checked/>&nbsp;Model comparison   </div>
+			
+      <div class="selectionBaseline">
+        <table style="font-size: 12px;">
+        <tbody>
+          <tr><td>Model IR</td><td>
+            <select class="modelIR_baseline" name="modelIR_baseline">
+                <option value="none">None</option>  
+            </select>
+          </td></tr>
+          <tr><td>New Output PDFs</td><td>
+            <select class="newPDF_baseline" name="newPDF_baseline">
+                <option value="none">None</option>  
+            </select>
+          </td></tr>
+          <tr><td>User</td><td>
+            <select class="user_baseline" name="user_baseline">
+                <option value="Ashish">Ashish</option>  
+                <option value="Vinay">Vinay</option>
+                <option value="Mamta">Mamta</option>  
+                <option value="Priyanka">Priyanka</option>  
+                <option value="Ruchi">Ruchi</option>  
+                <option value="Sakib">Sakib</option>
+                <option value="Shashank">Shashank</option>    
+                <option value="Shelja">Shelja</option>  
+                <option value="Shilpi">Shilpi</option> 
+            </select>
+          </td></tr>
+        </tbody>
+        </table>
+      </div>
+
+      <div class="selectionModel">
+				<table style="font-size: 12px;">
+				<tbody>
+					<tr><td>Model ML</td><td>
+						<select class="modelML" name="modelML">
+  							<option value="none">None</option>  
+						</select>
+					</td></tr>
+					<tr><td>Model IR</td><td>
+						<select class="modelIR" name="modelIR">
+  							<option value="none">None</option>  
+						</select>
+					</td></tr>
+					<tr><td>Baseline Model IR</td><td>
+						<select class="basemodelIR" name="basemodelIR">
+  							<option value="none">None</option>  
+						</select>
+					</td></tr>
+          <tr><td>Base Output PDFs</td><td>
+            <select class="basePDF" name="basePDF">
+                <option value="none">None</option>  
+            </select>
+          </td></tr>
+          <tr><td>New Output PDFs</td><td>
+            <select class="newPDF" name="newPDF">
+                <option value="none">None</option>  
+            </select>
+          </td></tr>
+					<tr><td>User</td><td>
+						<select class="user" name="user">
+  							<option value="Ashish">Ashish</option>  
+  							<option value="Diksha">Diksha</option>
+  							<option value="Mamta">Mamta</option>  
+  							<option value="Priyanka">Priyanka</option>  
+  							<option value="Ruchi">Ruchi</option>  
+  							<option value="Sakib">Sakib</option>
+  							<option value="Shashank">Shashank</option>    
+  							<option value="Shelja">Shelja</option>  
+  							<option value="Shilpi">Shilpi</option> 
+						</select>
+					</td></tr>
+				</tbody>
+				</table>
+			</div>
+			<br/>
+			<br/>
+			<br/>
+			<div class="selected">
+				<table class="w3-table w3-bordered w3-tiny" id="summary">
+					<tbody>
+						<tr><td colspan=3>Selected Folders</td></tr>
+						<tr><td>ModelML: </td><td class="modelMLVal"></td><td style="text-align: right;"><button class="backModelML backbutton" onclick='backFolder(".modelML",".modelMLVal")'>Back</button></td></tr>
+						<tr><td>ModelIR: </td><td class="modelIRVal"></td><td style="text-align: right;"><button class="backModelIR backbutton" onclick='backFolder(".modelIR",".modelIRVal")'>Back</button></td></tr>
+						<tr><td>BaseModelIR: </td><td class="modelbaseIRVal"></td><td style="text-align: right;"><button class="backBaseModelIR backbutton" onclick='backFolder(".basemodelIR",".modelbaseIRVal")'>Back
+            </button></td></tr>
+            <tr><td>Base Output PDF: </td><td class="basePDFVal"></td><td style="text-align: right;"><button class="backBasePDF backbutton" onclick='backFolder(".basePDF",".basePDFVal")'>Back</button></td></tr>
+            <tr><td>New Output PDF: </td><td class="newPDFVal"></td><td style="text-align: right;"><button class="backNewPDF backbutton" onclick='backFolder(".newPDF",".newPDFVal")'>Back</button></td></tr>
+					</tbody>
+				</table>
+
+        <table class="w3-table w3-bordered w3-tiny" id="summary_baseline">
+          <tbody>
+            <tr><td colspan=3>Selected Folders</td></tr>
+            <tr><td>ModelIR: </td><td class="modelIRVal_baseline"></td><td style="text-align: right;"><button class="backModelIR_baseline backbutton_baseline" onclick='backFolder(".modelIR_baseline",".modelIRVal_baseline")'>Back</button></td></tr>
+            <tr><td>New Output PDF: </td><td class="newPDFVal_baseline"></td><td style="text-align: right;"><button class="backNewPDF_baseline backbutton_baseline" onclick='backFolder(".newPDF_baseline",".newPDFVal_baseline")'>Back</button></td></tr>
+          </tbody>
+        </table>
+				<br/>
+				<button class="analyzebutton" onclick="submitPage()">Analyze results</button>
+			</div>
+		</div>
+	</center>
+</body>
+</html>

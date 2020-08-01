@@ -1,0 +1,776 @@
+<html>
+	<head>
+		<title>YodaCamp</title>
+		<link rel="icon" href="https://cdn-images-1.medium.com/max/1600/1*86dDGzwyawUu_MpEO2im1g.png" type="image/png" sizes="16x16">
+		<link rel="stylesheet" href="https://github.pytes.net/tail.select/source/css/default/tail.select-light.css">
+		<script type="text/javascript" src='https://github.pytes.net/tail.select/source/js/tail.select.min.js?ver=0.5.9'></script>
+		<script type="text/javascript" src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script>
+		<script type="text/javascript" src='https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js'></script>
+		<script type="text/javascript" src='https://cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js'></script>
+		<script type="text/javascript">
+		    var constructs = ['table','figure','heading','para','list','footnote','formula','artifacts','code','aside','extra','dataloss','flowchart'];
+		    var score = ['Major Improvement','Minor Improvement','Major Degradation','Minor Degradation','NoChange'];
+		    var dvStatus = ['Good DV', 'Bad DV'];
+		    var fileMap = new Map();
+			var IRBasePath = "";
+			var NewPDFPath = "";
+			var MLBasePath = "";			//Not in baseline
+			var BaselineIRBasePath = "";	//Not in baseline
+			var BasePDFPath = "";			//Not in baseline
+			var user = "";
+			var serverURL = "http://localhost:8000";//no1010042068018.corp.adobe.com
+			var startElementIndex = 0;
+			var lastElementIndex = 0;
+			var pageSize=20;
+			let tableTail;
+			function showContent(analysisType) {
+				  if(analysisType=="baseline"){
+				  	score = ['Major Degradation','Minor Degradation'];
+				  }
+				  var temp, tempConstruct, item, items;
+				  document.getElementById("user").innerHTML = user;
+				  //get the template element:
+				  temp = document.querySelector("template[id='pic-cell-template']");
+				  //get the DIV element from the template:
+				  item = temp.content.querySelector("div");
+
+				  var fullMLPath="";
+				  var fullIRPath="";
+				  var fullPDFPath="";
+				  var fullPDFBasePath="";
+				  var fullBaselineIRPath="";
+				  //for each item in the array:
+				  for (var i = startElementIndex; i < lastElementIndex; i++) {
+				  	fullMLPath = serverURL+MLBasePath+"/"+	Object.keys(fileMap)[i];													//Not in baseline
+				  	fullIRPath = serverURL+IRBasePath+"/"+Object.keys(fileMap)[i];
+				  	fullPDFPath = serverURL+NewPDFPath+"/"+Object.keys(fileMap)[i].slice(0,Object.keys(fileMap)[i].lastIndexOf('-'))+".pdf";
+				  	fullPDFBasePath = serverURL+BasePDFPath+"/"+Object.keys(fileMap)[i].slice(0,Object.keys(fileMap)[i].lastIndexOf('-'))+".pdf";	//Not in baseline
+					fullBaselineIRPath = serverURL+BaselineIRBasePath+"/"+Object.keys(fileMap)[i];										//Not in baseline
+				    //Create a new node, based on the template:
+				    imageMajorDiv = document.importNode(item, true);
+				    //Add data from the array:
+					imageMajorDiv.querySelector("select[id='pageselection']").setAttribute("onchange","pageSelection('"+i+"',this)");
+					imageMajorDiv.querySelector("div[class='filename']").textContent="Filename: "+Object.keys(fileMap)[i];
+					imageMajorDiv.querySelector("div[class='imageFirstDivIR']").setAttribute("id","imageFirstDivIR"+i);
+					imageMajorDiv.querySelector("img[class='imgFirstDivIR']").setAttribute("src",fullIRPath);
+					imageMajorDiv.querySelector("a[class='pdfFile']").setAttribute("href",fullPDFPath);
+					//Removal of elements for baselining workflow
+					if(analysisType=="baseline"){
+						temp = imageMajorDiv.querySelector("select[id='pageselection']");
+						temp.parentNode.removeChild(temp);
+						temp = imageMajorDiv.querySelector("a[class='pdfBaseFile']").parentNode;
+						temp.parentNode.removeChild(temp);
+						temp = imageMajorDiv.querySelector("div[class='imageFirstDivML']");
+						temp.parentNode.removeChild(temp);
+						temp = imageMajorDiv.querySelector("div[class='imageFirstDivPrevIR']");
+						temp.parentNode.removeChild(temp);
+						temp = imageMajorDiv.querySelector("div[class='imageSecondDivIR']");
+						temp.parentNode.removeChild(temp);
+						temp = imageMajorDiv.querySelector("td[id='secondImgTD']");
+						temp.parentNode.removeChild(temp);
+						imageMajorDiv.querySelector("div[class='imageFirstDivIR']").style.display="block";
+					} else{
+						imageMajorDiv.querySelector("a[class='pdfBaseFile']").setAttribute("href",fullPDFBasePath);
+						imageMajorDiv.querySelector("div[class='imageFirstDivML']").setAttribute("id","imageFirstDivML"+i);
+						imageMajorDiv.querySelector("div[class='imageFirstDivPrevIR']").setAttribute("id","imageFirstDivPrevIR"+i);
+						imageMajorDiv.querySelector("div[class='imageSecondDivIR']").setAttribute("id","imageSecondDivIR"+i);
+						imageMajorDiv.querySelector("img[class='imgFirstDivML']").setAttribute("src",fullMLPath);					
+						imageMajorDiv.querySelector("img[class='imgFirstDivPrevIR']").setAttribute("src",fullBaselineIRPath);
+						imageMajorDiv.querySelector("img[class='imgSecondDivIR']").setAttribute("src",fullIRPath);
+						imageMajorDiv.querySelector("td[id='secondImgTD']").setAttribute("class","secondImgTD"+i);
+						imageMajorDiv.querySelector("div[class='meepScoreFirstPrevIR']").setAttribute("id","meepScoreFirstPrevIR_"+i);
+						imageMajorDiv.querySelector("div[class='meepScoreFirstPrevIR']").innerHTML="Previous IR MEEP Score: "+fileMap[Object.keys(fileMap)[i]].split("##")[0];
+						imageMajorDiv.querySelector("div[class='meepScoreSecond']").setAttribute("id","meepScoreSecond_"+i);
+						imageMajorDiv.querySelector("div[class='meepScoreSecond']").innerHTML="New IR MEEP Score: "+fileMap[Object.keys(fileMap)[i]].split("##")[1];
+					}
+
+					imageMajorDiv.querySelector("button[class='copybutton']").setAttribute("onclick","copyfiles('"+analysisType+"','"+fullMLPath.replace(serverURL,"")+"','"+fullIRPath.replace(serverURL,"")+"','"+fullBaselineIRPath.replace(serverURL,"")+"','"+fullPDFPath.replace(serverURL,"")+"','"+fullPDFBasePath.replace(serverURL,"")+"','"+Object.keys(fileMap)[i]+"','"+i+"')");
+					imageMajorDiv.querySelector("select[class='page_score']").setAttribute("id","page_score_"+i);
+					imageMajorDiv.querySelector("select[class='page_score']").setAttribute("onchange","scoreDecide('"+i+"',this)");
+					imageMajorDiv.querySelector("textarea[class='textareaComment']").setAttribute("id","textareaComment_"+i);
+					imageMajorDiv.querySelector("button[class='copybutton']").setAttribute("id","copyButton_"+i);
+					imageMajorDiv.querySelector("div[class='popUp']").setAttribute("id","popUp_"+i);
+					imageMajorDiv.querySelector("select[class='selectBox_meepPrediction']").setAttribute("id","selectBox_meepPrediction_"+i);
+					imageMajorDiv.querySelector("div[class='meepScoreFirstIR']").setAttribute("id","meepScoreFirstIR_"+i);
+					imageMajorDiv.querySelector("div[class='meepScoreFirstIR']").innerHTML="Current IR MEEP Score: "+fileMap[Object.keys(fileMap)[i]].split("##")[1];
+		            
+					for(var j in score){
+						temp = document.createElement("option");
+						temp.setAttribute("value",score[j]);
+						temp.innerHTML = score[j];
+						imageMajorDiv.querySelector("select[class='page_score']").appendChild(temp);
+					}
+
+					for (var j in score){
+						if(score[j].includes("Degradation")){
+							//check dv options
+							temp = document.querySelector("template[id='select-dvstatus']");
+							tempConstruct = document.importNode(temp.content.querySelector("div"), true);
+						  	tempConstruct.setAttribute("class",score[j].replace(' ','')+"Div "+score[j].replace(' ','')+"CheckDVTR_"+i);
+						  	tempConstruct.querySelector("select").setAttribute("id","selectBox_"+score[j].replace(' ','')+"_checkDV_"+i);
+						  	tempConstruct.querySelector("select[id="+"'selectBox_"+score[j].replace(' ','')+"_checkDV_"+i+"'").setAttribute("onchange","dvstatusDecide('"+i+"',this)");
+							imageMajorDiv.querySelector("div[class='bucketSelect']").appendChild(tempConstruct);
+							for(var n in dvStatus){
+								for(var k in constructs){
+									temp = document.querySelector("template[id='select-"+constructs[k]+"']");
+						  			tempConstruct = document.importNode(temp.content.querySelector("div"), true);
+						  			tempConstruct.setAttribute("class",score[j].replace(' ','')+"Div "+dvStatus[n].replace(' ','')+score[j].replace(' ','')+"TR_"+i);
+						  			tempConstruct.querySelector("select").setAttribute("id","selectBox_"+dvStatus[n].replace(' ','')+score[j].replace(' ','')+"_"+constructs[k]+"_"+i);
+									imageMajorDiv.querySelector("div[class='bucketSelect']").appendChild(tempConstruct);
+								}
+							}
+
+						} else if(score[j].includes("Improvement")){
+							for(var k in constructs){
+								temp = document.querySelector("template[id='select-"+constructs[k]+"']");
+					  			tempConstruct = document.importNode(temp.content.querySelector("div"), true);
+					  			tempConstruct.setAttribute("class",score[j].replace(' ','')+"Div "+score[j].replace(' ','')+"TR_"+i);
+					  			tempConstruct.querySelector("select").setAttribute("id","selectBox_"+score[j].replace(' ','')+"_"+constructs[k]+"_"+i);//[id='selectBox_"+score[j]+"_"+constructs[k]+"']
+								imageMajorDiv.querySelector("div[class='bucketSelect']").appendChild(tempConstruct);
+							}
+						}
+					}
+					//if(analysisType="baseline")
+					//	imageMajorDiv.querySelector("div[class='"+score[0].replace(' ','')+"Div "+dvStatus[1].replace(' ','')+score[0].replace(' ','')+"TR_"+i+"']").style.display="none";
+					//custom field
+					temp = document.querySelector("template[id='select-custom']");
+					tempConstruct = document.importNode(temp.content.querySelector("div"), true);
+				  	tempConstruct.setAttribute("class","custom customTR_"+i);
+				  	tempConstruct.querySelector("select").setAttribute("id","selectBox_custom_"+i);
+				  	tempConstruct.querySelector("select").setAttribute("onchange","enableAdd("+i+")");
+					imageMajorDiv.querySelector("div[class='bucketSelect']").appendChild(tempConstruct);
+
+					//custom field textarea
+					temp = document.querySelector("template[id='textarea-custom']");
+					tempConstruct = document.importNode(temp.content.querySelector("div"), true);
+				  	tempConstruct.setAttribute("class","textareaCustom textareaCustomTR_"+i);
+				  	tempConstruct.querySelector("textarea").setAttribute("id","textarea_custom_"+i);
+				  	tempConstruct.querySelector("input").setAttribute("id","addBucketButton_"+i);
+				  	tempConstruct.querySelector("input").setAttribute("onclick","addBucket("+i+")");
+					imageMajorDiv.querySelector("div[class='bucketSelect']").appendChild(tempConstruct);
+
+					//noChange options - Good/Bad
+					temp = document.querySelector("template[id='select-noChange']");
+					tempConstruct = document.importNode(temp.content.querySelector("div"), true);
+				  	tempConstruct.setAttribute("class","noChangeDiv noChangeTR_"+i);
+				  	tempConstruct.querySelector("select").setAttribute("id","selectBox_noChange_"+i);
+					imageMajorDiv.querySelector("div[class='bucketSelect']").appendChild(tempConstruct);					
+
+					items = imageMajorDiv.querySelectorAll("input[class='issueCheckbox']");
+  					for (var j=0; j < items.length; j++) 
+    					items[j].setAttribute("class","issueCheckbox_"+i);
+
+  					items = imageMajorDiv
+
+				    //append the new node wherever you like:
+				    document.getElementById("mainContent").appendChild(imageMajorDiv);
+				  }
+
+				  //tail.select(".js-example-basic");
+				  tail.select(".selectBox_table",{placeholder:"Table"});
+				  tail.select(".selectBox_figure",{placeholder:"Figure"});
+				  tail.select(".selectBox_heading",{placeholder:"Heading"});
+				  tail.select(".selectBox_para",{placeholder:"Para"});
+				  tail.select(".selectBox_list",{placeholder:"List"});
+				  tail.select(".selectBox_footnote",{placeholder:"Footnote"});
+				  tail.select(".selectBox_formula",{placeholder:"Formula"});
+				  tail.select(".selectBox_artifacts",{placeholder:"Artifacts"});
+				  tail.select(".selectBox_code",{placeholder:"Code"});
+				  tail.select(".selectBox_aside",{placeholder:"Aside"});
+				  tail.select(".selectBox_extra",{placeholder:"Extra"});
+				  tail.select(".selectBox_dataloss",{placeholder:"Dataloss"});
+				  tail.select(".selectBox_flowchart",{placeholder:"Flowcharts"});
+				  tail.select(".selectBox_custom",{placeholder:"Add custom"});
+				  tail.select(".selectBox_meepPrediction",{placeholder:"For Meep Prediction"});
+				  
+				  for(var i in score){
+		    		if(i==0){
+		    			$("."+score[i].replace(' ','')+"Div").css("display",'block');
+		    			if(analysisType=="baseline")
+			    			for(var j=startElementIndex;j<lastElementIndex;j++){
+			    				$("."+dvStatus[1].replace(' ','')+score[i].replace(' ','')+"TR_"+j).hide();
+			    			}
+		    		}
+		    		else
+		    			$("."+score[i].replace(' ','')+"Div").css("display",'none');
+		    		}
+		    		$(".noChangeDiv").css("display",'none');
+		    		if(analysisType=="baseline")
+		    			$(".showMoreButton").attr("onclick","showContent('baseline')");
+
+				  startElementIndex = lastElementIndex;
+				  if(lastElementIndex!=Object.keys(fileMap).length){
+				  	if(Object.keys(fileMap).length-lastElementIndex<pageSize)
+				  		lastElementIndex = Object.keys(fileMap).length;
+				  	else
+				  		lastElementIndex = lastElementIndex+pageSize;
+				  }
+				  else{
+				  	$(".showMoreButton").hide();
+				  }
+
+			}
+
+
+		    document.onreadystatechange = function () {
+		            var state = document.readyState
+		            if (state == 'complete') {
+		                setTimeout(function(){
+		                    document.getElementById('load').style.visibility="hidden";
+		                },1000);
+		            }
+		        }
+
+		    function addBucket(selectedIndex){
+		    	var selectedBucket = $("#selectBox_custom_"+selectedIndex).find('option:selected').text();
+		    	var newOption = $("#textarea_custom_"+selectedIndex).val();
+		    	if(selectedBucket!="None" && newOption!=""){
+			    	let instance = tail.select(".selectBox_"+selectedBucket.toLowerCase());
+			    	for(var i =0;i<instance.length;i++){
+			    		//Check existing
+			    		var existing = instance[i].options.find(newOption);
+			    		for(var j=0;j<existing.length;j++)
+			    			if(existing[i].value==newOption)
+			    				return;
+			    		instance[i].options.add(newOption, newOption, false, false, false, 'Newly added', true);
+			    	}
+		    	}
+		    }
+
+		    function enableAdd(selectedIndex) {
+		    	var selectedBucket = $("#selectBox_custom_"+selectedIndex).find('option:selected').text();
+		    	if(selectedBucket!="None")
+		    		$("#addBucketButton_"+selectedIndex).attr("disabled", false);
+		    	 else
+		    		$("#addBucketButton_"+selectedIndex).attr("disabled", true);
+		    }
+
+		    function getUrlVars() {
+			    var vars = {};
+			    var parts = decodeURIComponent(window.location.href).replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+			        vars[key] = value;
+			    });
+			    return vars;
+			}
+		    $(document).ready(function() {
+		    			MLBasePath = getUrlVars()["modelMLPath"];				//Not in baseline
+		    			IRBasePath = getUrlVars()["modelIRPath"];
+		    			BaselineIRBasePath = getUrlVars()["modelBaseIRPath"];	//Not in baseline
+		    			BasePDFPath = getUrlVars()["basePDFPath"];				//Not in baseline
+		    			NewPDFPath = getUrlVars()["newPDFPath"];
+		    			AnalysisType = getUrlVars()["analysisType"];
+		    			user = getUrlVars()["user"];
+		    			$.ajax({
+        					url:'/fillAnalysisPage',
+					        datatype: "json",
+					        data:{analysisType:AnalysisType,modelIRPath:IRBasePath,modelBaseIRPath:BaselineIRBasePath,newPDFPath:NewPDFPath},
+					        success:function(response){
+					        	if(response.status == "200"){
+						        	fileMap = response.fileMap;
+						        	if(Object.keys(fileMap).length>pageSize)
+						        		lastElementIndex=pageSize;
+						        	else
+						        		lastElementIndex=Object.keys(fileMap).length;
+						            showContent(response.analysisType);
+					            } else{
+					            	$(".errorDiv").css("display","block");
+						            setTimeout(function() {
+						              $(".errorDiv").css("display","none");
+						            }, 1500);
+					            }
+					            },
+					        error: function() {
+					            alert('process error');
+					            },
+				        });
+		            });
+		    
+		    function copyfiles(analysisType, fullMLPath, fullIRPath, fullBaseIRPath, pdfFilePath,basePdfFilePath,fileName,imageCount){
+		        var scoreData = new Map();
+		        for (var j=0; j < score.length; j++){
+		            var constructData = new Map();
+		            if($('#selectBox_noChange_'+imageCount).val().localeCompare("None")){
+	            		scoreData["NoChange"] = $('#selectBox_noChange_'+imageCount).val();
+	            		break;
+		            }
+		            if(!score[j].includes('NoChange')){
+	            		for (var i = 0; i < constructs.length; i++){
+	            			var foldersWithDV = new Map();
+	            			if(!score[j].includes("Degradation"))
+	            				foldersWithDV["none"] = $("#selectBox_"+score[j].replace(' ','')+"_"+constructs[i]+"_"+imageCount).val();
+	            			else{
+	            				foldersWithDV["GoodDV"] = $("#selectBox_GoodDV"+score[j].replace(' ','')+"_"+constructs[i]+"_"+imageCount).val();
+	            				foldersWithDV["BadDV"] = $("#selectBox_BadDV"+score[j].replace(' ','')+"_"+constructs[i]+"_"+imageCount).val();
+	            			}
+	            			constructData[constructs[i]]=foldersWithDV;
+			            }
+		            	scoreData[score[j]]=constructData;
+		            }
+		        }
+		        scoreData["comments"]= $("#textareaComment_"+imageCount).val();
+		        scoreData["meepPrediction"] = $("#selectBox_meepPrediction_"+imageCount).val();
+		        scoreData["meepScore"] = fileMap[fileName];
+			    //scoreData["dvstatus"]= $("#selectBox_checkDV_"+imageCount).val().localeCompare("None")?$("#selectBox_checkDV_"+imageCount).val():"";
+
+	            if($('.issueCheckbox_'+imageCount+':checked').length==2)
+	                scoreData["issueIn"]=["issueML","issueIR"];
+	            else if($('.issueCheckbox_'+imageCount+':checked').length==1)
+	                scoreData["issueIn"]=$('.issueCheckbox_'+imageCount+':checked').val();
+	            else
+	                scoreData["issueIn"]="";
+		        $.ajax({
+		        url:'/copyFile',type:'get',
+		        data:{analysisType:analysisType,fullMLPath:fullMLPath,fullIRPath:fullIRPath,fullBaseIRPath:fullBaseIRPath, pdfFilePath: pdfFilePath,basePdfFilePath: basePdfFilePath,fileName: fileName, scoreData:scoreData, user:user},
+		        success:function(response){
+		        	//alert(response.status);
+		        	if(response.status == "200"){
+			            $( "#popUp_"+imageCount ).show(); 
+	   					setTimeout(function() {
+	    					$( "#popUp_"+imageCount).hide();
+	    				}, 2000);
+	    				$("#copyButton_"+imageCount).text("Updated");
+	    			} else{
+	    				$(".errorDiv").css("display","block");
+						setTimeout(function() {
+			              $(".errorDiv").css("display","none");
+			            }, 1500);
+	    			}
+		            },
+		        error: function() {
+		            $(".errorDiv").css("display","block");
+					setTimeout(function() {
+			              $(".errorDiv").css("display","none");
+			            }, 1500);
+		            },
+		        });
+		    }
+		   
+		   	function dvstatusDecide(count,selected){
+	   			$("."+(selected.value).replace(' ','')+$("#page_score_"+count).val().replace(' ','')+"TR_"+count).css("display",'block');
+	   			$("."+(selected.value.includes("Good")?"BadDV":"GoodDV")+$("#page_score_"+count).val().replace(' ','')+"TR_"+count).css("display",'none');
+		   	}
+
+		    function scoreDecide(count,selected){
+		    	//alert($("#selectBox_"+"MajorDegradation_checkDV_"+count).val());
+		    	for(var i in score){
+		    		if(selected.value==score[i]){
+		    			if(score[i].includes("Degradation")){
+			    			//for(var n in dvStatus)
+			    			$("."+($("#selectBox_"+score[i].replace(' ','')+"_checkDV_"+count).val()).replace(' ','')+score[i].replace(' ','')+"TR_"+count).css("display",'block');
+			    			$("."+score[i].replace(' ','')+"CheckDVTR_"+count).css("display",'block');
+		    			} else 
+		    				$("."+score[i].replace(' ','')+"TR_"+count).css("display",'block');
+		    		}
+		    		else{
+		    			if(score[i].includes("Degradation")){
+			    			for(var n in dvStatus){
+			    				$("."+dvStatus[n].replace(' ','')+score[i].replace(' ','')+"TR_"+count).css("display",'none');
+			    				$("."+score[i].replace(' ','')+"CheckDVTR_"+count).css("display",'none');
+			    			}
+		    			} else 
+		    				$("."+score[i].replace(' ','')+"TR_"+count).css("display",'none');
+		    		}
+		    	}
+		    	if(selected.value.includes("Degradation"))
+		    		$(".issueCheckbox_"+count).removeAttr('disabled');
+		    	else
+		    		$(".issueCheckbox_"+count).prop('disabled', true);
+					
+				if(selected.value=="NoChange"){
+		    		$(".customTR_"+count).css("display",'none');
+		    		$(".textareaCustomTR_"+count).css("display",'none');
+		    	}
+		    	else{
+		    		$(".customTR_"+count).css("display",'block');
+		    		$(".textareaCustomTR_"+count).css("display",'block');
+		    	}
+		    }
+
+		    function pageSelection(count,selected){
+		        if (selected.value=="show1"){
+		            $(".secondImgTD"+count).css("display",'none');
+		            $("#imageFirstDivML"+count).css("display",'none');
+		            $("#imageFirstDivIR"+count).css("display",'table-cell');
+		            $("#imageFirstDivPrevIR"+count).css("display",'none');
+		            $("#imageSecondDivIR"+count).css("display",'none');
+		        }
+		        else if (selected.value=="show2"){
+		            $(".secondImgTD"+count).css("display",'table-cell');
+		            $("#imageFirstDivML"+count).css("display",'table-cell');
+		            $("#imageFirstDivIR"+count).css("display",'none');
+		            $("#imageFirstDivPrevIR"+count).css("display",'none');
+		            $("#imageSecondDivIR"+count).css("display",'table-cell');
+		        }
+		        else if (selected.value=="show3"){
+		            $(".secondImgTD"+count).css("display",'table-cell');
+		            $("#imageFirstDivML"+count).css("display",'none');
+		            $("#imageFirstDivIR"+count).css("display",'none');
+		            $("#imageFirstDivPrevIR"+count).css("display",'table-cell');
+		            $("#imageSecondDivIR"+count).css("display",'table-cell');
+		        }
+		    }
+		</script>
+		<style type="text/css">
+			.multiselect_constructs {
+			  width: 400px;
+			}
+			.copybutton{
+			    width: 150px;
+			    height:25px;
+			    font-size:14px;
+			    font-weight: bold;
+			    border-radius: 15px;
+			}
+			.checkDVButton{
+			    width: 100px;
+			    height:25px;
+			    font-size:12px;
+			    font-weight: bold;
+			    border-radius: 15px;
+			}
+			.excelbutton{
+			    width: 400px;
+			    height:25px;
+			    font-size:14px;
+			    font-weight: bold;
+			    border-radius: 5px;
+			}
+			.pic-cell{
+				background-color: azure;
+				background-image: url(https://wallpapertag.com/wallpaper/full/3/3/a/125483-background-nature-2400x1186-mobile.jpg);
+			    padding: 10px;
+			    margin-bottom: 5px;
+			    border-style: solid;
+			    display:inline-block;
+			    width:1600px;
+			}
+			.filename {
+				display: inline-block;
+			}
+			.tail-select {
+			    width: 100%;
+			}
+			body {
+				background-repeat: no-repeat;
+	  			background-size: 95%;
+	    		background-position: center;
+			}
+			table{
+			    border-collapse: collapse;
+			}
+			table, td, th {
+			    border: 1px solid black;
+			    padding:4px;
+			    color:white;
+			}
+			.imageFirstDivML{
+			    display:none;
+			}
+			.imageFirstDivPrevIR{
+			    display:table-cell;
+			    border: 1px solid black;
+			}
+			.imageFirstDivIR{
+			    display:none;
+			}
+			.imageSecondDivIR{
+			    display:table-cell;
+			    border: 1px solid black;
+			}
+			.checkdv_Radio{
+				width: 160px;
+			    position: absolute;
+			    bottom: 6;
+			    right: 35px;
+			}
+			.checkDV{
+			    position: absolute;
+			    bottom: 10px;
+			    right: 16;
+			}
+			.buckets{
+			    position: relative;
+			}
+			a{
+			    color = white;
+			}
+			th {
+			    background-color: #8000479e;
+			    color: white;
+			}
+			.tail-select .select-dropdown ul li {
+    			font-size: 14px;
+    		}
+			.popUp
+			{
+				display: none;
+			    color: black;
+			    position: relative;
+			    left: 41px;
+			    top: 7px;
+			}
+			#load{
+			    width:100%;
+			    height:100%;
+			    position:fixed;
+			    z-index:9999;
+			    background:url("https://www.creditmutuel.fr/cmne/fr/banques/webservices/nswr/images/loading.gif") no-repeat center center rgba(0,0,0,0.25)
+			}
+			.showMoreButton{
+				width: 200px;
+			    height: 25px;
+			    font-size: 12px;
+			    font-weight: bold;
+			    border-radius: 15px;
+			}
+			.errorDiv{
+		      background: #ef0748d1;
+		      display: none;
+		      width:100%;
+		      position: fixed;
+		      top: 25%;
+		      left: 50%;
+		      margin-top: -100px;
+		      margin-left: -50%;
+		    }
+		    .textareaCustom {
+			  	position: relative;
+			}
+			.textareaCustom textarea {
+			  	width: 100%;
+			  	height: 100%;
+			  	box-sizing: border-box;
+			}
+			.textareaCustom input {
+				position: absolute;
+			  	top: 50%;
+			  	right: 2px;
+			}
+			.meepScoreFirstIR{
+				background: #7572c1;
+				text-align: center;
+			}
+			.meepScoreFirstPrevIR{
+				background: #7572c1;
+				text-align: center;
+			}
+			.meepScoreSecond{
+				background: #7572c1;
+				text-align: center;
+			}
+		</style>
+	</head>
+	<body><center>
+		<div id="mainContent">
+		<div id="user" style="visibility: hidden"></div>
+
+		<div id="load"></div>
+			<div class="errorDiv">Some error occurred and logged!</div>
+				<template id="select-dvstatus"><div class="improvementDiv"><select class="js-example-basic selectBox_checkdv" onchange="" style="width:100%;font-size:14px;" id="selectBox_checkDV">
+                    <!--<option selected>None</option>-->
+                    <option selected>Good DV</option>
+                    <option>Bad DV</option>
+				</select></div></template>
+				<template id="select-table"><div class="improvementDiv"><select class="js-example-basic-multiple selectBox_table" id="selectBox_improvement_table" multiple="multiple">
+				    <option>Table Marked as Figure</option>
+				    <option>Table Marked as List</option>				 
+				    <option>Table Marked as Para</option>
+				    <option>Table Marked as Artifact</option>
+				    <option>Table Marked as Heading</option>
+				    <option>Table Marked as Footnote</option>
+				    <option>Improper Table Bounds(External content included)</option>
+				    <option>Improper Table Bounds(Internal content excluded)</option>
+				    <option>Table Split</option>
+				    <option>Table Join</option>
+				    <option>Whole Page Marked as Table</option>
+				    <option>Figure Marked as Table</option>
+				    <option>Heading Marked as Table</option>
+					<option>List Marked as Table</option>
+				    <option>Footnote Marked as Table</option>
+				    <option>Formula Marked as Table</option>
+				    <option>Artifact Marked as Table</option>
+				    <option>Para Marked as Table</option>
+				</select></div></template>
+				 <template id="select-figure"><div class="improvementDiv"><select class="js-example-basic-multiple selectBox_figure" id="selectBox_improvement_figure" multiple="multiple">
+				    <option>Figure Marked as Para_List</option>
+				    <option>Figure Marked as Heading</option>
+				    <option>Figure Improper bounds(Internal Content Excluded)</option>
+				    <option>Figure Improper bounds(External Content Included)</option>
+				    <option>Whole Page Marked as Figure </option>
+				    <option>Figure Marked as Artifact</option>				   
+				    <option>Figure Split</option>
+				    <option>Figure Join(due to overlaps or single detections)</option>
+				    <option>Figure getting overlapped by paras, headings etc</option>
+				    <option>Para Aside Figure</option> -- aside				    
+				    <option>Inline Figure Not Handled</option>
+				    <option>Para Marked as Figure</option>
+				    <option>List Marked as Figure</option>
+				    <option>Heading Marked as Figure</option>
+				    <option>Artifact Marked as Figure</option>
+				</select></div></template>
+				<template id="select-heading"><div class="improvementDiv"><select class="js-example-basic-multiple selectBox_heading" id="selectBox_improvement_heading" multiple="multiple">
+				    <option>Heading Marked as Para</option>
+					<option>Heading Marked as List</option>
+				   	<option>Heading Inconsistency with List</option>
+				    <option>Heading Inconsistency with Para</option>
+				    <option>Multiline Heading Merged</option>
+				    <option>Heading Merged with Para</option>
+				    <option>Heading Merged with List</option>
+				    <option>Heading Split</option>
+				    <option>Heading Level</option>
+				    <option>Repeated Headings not Handled</option> 
+				    <option>Para Marked as Heading</option>
+				    <option>List Marked as Heading</option>
+				</select></div></template>
+				 <template id="select-para"><div class="improvementDiv"><select class="js-example-basic-multiple selectBox_para" style="width: 300px" id="selectBox_improvement_para" multiple="multiple">
+					<option>Para Marked as List</option>				    
+				    <option>Para Merged with Footnote</option>
+				    <option>Para Merged with Heading</option>
+				    <option>Para Join</option>
+				    <option>Para Split</option>
+				</select></div></template>
+				 <template id="select-list"><div class="improvementDiv"><select class="js-example-basic-multiple selectBox_list" style="width: 300px" id="selectBox_improvement_list" multiple="multiple">
+				    <option>List Marked as Para</option>
+					<option>List Merge</option>
+				    <option>List Merge with Para/Heading</option>
+				    <option>List Split into Multiple Lists</option>
+				    <option>List Split into List and Para</option>
+				</select></div></template>
+				 <template id="select-footnote"><div class="improvementDiv"><select class="js-example-basic-multiple selectBox_footnote" style="width: 300px" id="selectBox_improvement_footnote" multiple="multiple">
+				    <option>Footnote Marked as List</option>
+				    <option>Footnote Marked as Artifact</option>
+				    <option>Footnote Marked as Para</option>
+				    <option>Footnote Bbox Include other Construct</option>
+				    <option>Footnote Split</option>
+				    <option>Footnote Join</option>
+				    <option>Para Marked as Footnote</option>
+				    <option>List Marked as Footnote</option>
+				</select></div></template>
+				 <template id="select-formula"><div class="improvementDiv"><select class="js-example-basic-multiple selectBox_formula" style="width: 300px" id="selectBox_improvement_formula" multiple="multiple">
+				    <option>Formula Marked as Para</option>
+				    <option>Formula Marked as List</option>
+				    <option>Improper Formula Bounds (external content included)</option>
+				    <option>Formula Join or Merge</option>
+				    <option>Formula Split</option>
+				</select></div></template>
+				 <template id="select-artifacts"><div class="improvementDiv"><select class="js-example-basic-multiple selectBox_artifacts" style="width: 300px" id="selectBox_improvement_artifacts" multiple="multiple">
+				    <option>Artifact Probability less than 0.85</option>
+				    <option>Artifact Marked as Para</option>
+					<option>Artifact Marked as List</option>
+				    <option>Artifact Marked as Heading</option>
+				    <option>Layout Marked as Figure</option>
+				    <option>Para Marked as Artifact</option>
+				    <option>Heading Marked as Artifact</option>
+				</select></div></template>
+				 <template id="select-code"><div class="improvementDiv"><select class="js-example-basic-multiple selectBox_code" style="width: 300px" id="selectBox_improvement_code" multiple="multiple">
+				    <option>Improper bounds(Internal Content Excluded)</option>
+				    <option>Improper bounds(External Content Included)</option>
+				    <option>Other</option>
+				</select></div></template>
+				<template id="select-aside"><div class="improvementDiv"><select class="js-example-basic-multiple selectBox_aside" style="width: 300px" id="selectBox_improvement_aside" multiple="multiple">
+				    <option>Para split due to asides</option>
+				    <option>Aside (text/figure caption) is merged with the surrounding text</option>
+				    <option>Figure merged with text surrounding it and marked as para</option>
+				</select></div></template>
+				 <template id="select-extra"><div class="improvementDiv"><select class="js-example-basic-multiple selectBox_extra" style="width: 300px" id="selectBox_improvement_extra" multiple="multiple">
+				    <option>Orphan</option>
+				    <option>Overlapping Bbox causing Reading Order Issues</option>
+				    <option>Incorrect bbox cause Reading Order Issues</option>
+				</select></div></template>
+				 <template id="select-dataloss"><div class="improvementDiv"><select class="js-example-basic-multiple selectBox_dataloss" style="width: 300px" id="selectBox_improvement_dataloss" multiple="multiple">
+				    <option>Data Loss in Table</option>
+				    <option>Data Loss in Figure</option>
+				    <option>Data Loss in Heading</option>
+				    <option>Data Loss in Para</option>
+				    <option>Data Loss in List</option>
+				    <option>Data Loss in Footnote</option>
+				    <option>Data Loss in Formula</option>
+				    <option>Data Loss in Artifacts</option>
+				    <option>Data Loss in Code</option>
+				</select></div></template>
+				<template id="select-flowchart"><div class="improvementDiv"><select class="js-example-basic-multiple selectBox_flowchart" style="width: 300px" id="selectBox_improvement_flowchart" multiple="multiple">
+				    <option>Flowchart Marked as List</option>
+				    <option>Improper Bounds(Internal Content Excluded)</option>
+				    <option>Improper Bounds(External Content Included)</option>
+				    <option>Flowchart marked as Table</option>
+				    <option>Whole page marked as Flowchart  </option>
+				    <option>Flowchart Marked as Para</option>
+				    <option>Flowchart Marked as Heading</option>
+				    <option>Flowchart Marked as Artifact</option>
+				    <option>Part of Flowchart missing(marked as an artifact)</option>
+				    <option>Flowchart Split</option>
+				    <option>Flowchart Join (due to overlaps or single detections)</option>
+				    <option>Flowchart Getting Overlapped by Paras, Headings etc</option>
+				    <option>Para Aside Flowchart</option> 
+				</select></div></template>
+				<template id="select-custom"><div class="improvementDiv"><select class="js-example-basic selectBox_custom" id="selectBox_improvement_custom">
+				    <option>None</option>
+				    <option>Table</option>
+				    <option>Figure</option>
+				    <option>Heading</option>
+				    <option>Para</option>
+				    <option>List</option>				 
+				    <option>Footnote</option>
+				    <option>Formula</option>
+				    <option>Artifacts</option>
+				    <option>Code</option>
+				    <option>Extra</option>
+				    <option>DataLoss</option>
+				    <option>Flowcharts</option>
+				</select></div></template>
+				<template id="textarea-custom"><div class="textareaCustomDiv"><textarea placeholder="Do not use symbols for safe addition of new bucket." class="textareaCustom" id="textareaCustom" style="width: 100%;height: 40px;"></textarea><input type="button" class="textareaButton" value="Add" disabled/></div></template>
+				<template id="select-noChange"><div class="noChangeDiv"><select class="js-example-basic selectBox_noChange" style="width: 300px" id="selectBox_noChange">
+					<option>None</option>
+				    <option>Good</option>
+				    <option>Bad</option>
+				</select></div></template>
+				<template id="pic-cell-template">
+					<div class='pic-cell'>
+					    <table>
+					        <tbody>
+					            <tr><th colspan=3><div class='filename'>Filename: {fileName}</div>&nbsp;&nbsp;<select id="pageselection" onchange="pageSelection('{imgCount}',this)">
+					                <option value="show1">Current Model IR</option>
+					                <option value="show2">Current Model ML vs IR</option>
+					                <option value="show3" selected>Previous Model IR vs Current Model IR</option>
+					                         </select></th></tr>
+					            <tr>
+					                <td class="firstImgTD">
+					                    <div class="imageFirstDivIR" id="imageFirstDivIR{imgCount}"><div class="meepScoreFirstIR" id="meepScoreFirstIR{imgCount}">New Model IR MEEP Score: </div><img class="imgFirstDivIR" src="" width="600" height="800" /></div>
+					                    <div class="imageFirstDivML" id="imageFirstDivML{imgCount}"><img class="imgFirstDivML" src="" width="600" height="800" /></div>
+					                    <div class="imageFirstDivPrevIR" id="imageFirstDivPrevIR{imgCount}"><div class="meepScoreFirstPrevIR" id="meedScoreFirstPrevIR{imgCount}">Base Model IR MEEP Score: </div><img class="imgFirstDivPrevIR" src="" width="600" height="800" /></div><br>
+					                </td>
+					                <td id="secondImgTD" class="secondImgTD{imgCount}">
+					                    <div class="imageSecondDivIR" id="imageSecondDivIR{imgCount}"><div class="meepScoreSecond" id="meepScoreSecond{imgCount}">New Model IR MEEP Score: </div><img class="imgSecondDivIR" src="" width="600" height="800" /></div><br>
+					                </td>
+					                <td class="buckets">
+					                     	<div class="select_constructs"><select class="page_score" id="" name="score" onchange="" style="width:100%;font-size:15px;">
+					                        </select></div>
+					                        <div class="bucketSelect"></div>
+					                        <div class="commentDiv"><textarea placeholder="Enter comments here..." class="textareaComment" id="textareaComment" rows="4" cols="46" style="width: 100%;"></textarea></div>
+					                        <div>
+					                        	<select class="selectBox_meepPrediction" id="">
+					                        		<option value="none">MEEP Prediction</option>
+					                        		<option value="Matched">Matched</option>
+					                        		<option value="Mismatched">Mismatched</option>
+					                        	</select>
+					                        </div>
+					                        <div style="color: black;"><input type="checkbox" class="issueCheckbox" value="issueIR" disabled>Issue in IR&nbsp;<input type="checkbox" class="issueCheckbox" value="issueML" disabled>Issue in ML</div><br/>
+					                    <button class="copybutton" onclick="copyfiles('{fullMLPath}','{fullIRPath}','{fullBaseIRPath}','{pdfFilePath}','{basePdfFilePath}','{fileName}','{imgCount}')">Update Folders</button>
+					                    <div class="popUp" id="" style="display: none;"> Wait while updating Buckets and Excel! </div>
+					                    <table>
+					                        <tr><div class="checkDV">
+					                        <button class="checkDVButton"><a class="pdfBaseFile" style="text-decoration:none; color:black;" href="http://localhost:8000/{pdfBaseFilePath}" target="_blank">CheckBaseDV</a></button>
+					                        <button class="checkDVButton"><a class="pdfFile" style="text-decoration:none; color:black;" href="http://localhost:8000/{pdfFilePath}" target="_blank">CheckDV</a></button>
+					                    </div></tr>
+					                    </table>
+					                </td>
+					            </tr>
+					        </tbody>
+					    </table>
+					</div>
+				</template>
+			<br>
+		</div><button class="showMoreButton" onclick="showContent()">Show More Pages</button>
+	</center>
+	</body>
+</html>
